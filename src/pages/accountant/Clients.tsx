@@ -54,7 +54,7 @@ export default function Clients() {
                             <Link to={`/clients/${c.id}`} onClick={(e) => e.stopPropagation()} className="block truncate font-medium text-zinc-900 hover:underline">
                               {c.name}
                             </Link>
-                            <div className="truncate text-xs text-zinc-500">{c.contactName}</div>
+                            {c.contactName !== c.name && <div className="truncate text-xs text-zinc-500">{c.contactName}</div>}
                           </div>
                         </div>
                       </td>

@@ -204,7 +204,7 @@ export default function ClientRequest() {
                   <button
                     type="button"
                     onClick={() => cameraInput.current?.click()}
-                    className={cn(bigSecondary, 'w-auto px-3.5')}
+                    className="inline-flex h-11 w-12 shrink-0 items-center justify-center rounded-xl border border-zinc-300 bg-white text-zinc-800 transition-colors hover:bg-zinc-50"
                     aria-label="Odfotiť doklad"
                     title="Odfotiť doklad"
                   >

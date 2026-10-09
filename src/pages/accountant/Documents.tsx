@@ -5,7 +5,7 @@ import type { Client, Document, DocumentStatus } from '../../data/types'
 import { useStore } from '../../store/AppStore'
 import { useToast } from '../../components/Toast'
 import { Button, Card, DOCUMENT_KIND_LABEL, DocumentStatusBadge, EmptyState, Modal, PageHeader, Tabs, cn } from '../../components/ui'
-import { formatDate, formatMoney, plural } from '../../lib/format'
+import { formatDate, formatMoney, formatShortDate, plural } from '../../lib/format'
 import { buildPohodaXml, downloadFile, exportFileName, isExportableKind } from '../../lib/pohodaXml'
 
 /* ---------- Export do Pohody (zdieľané s detailom dokladu) ---------- */
@@ -84,7 +84,7 @@ export function PohodaExportModal({ open, onClose, docs, onDone }: { open: boole
       onClose={close}
       title="Export do Pohody"
       description="Skontrolujte, čo sa vyexportuje. Každý klient dostane samostatný XML súbor."
-      width="max-w-xl"
+      width="max-w-2xl"
       footer={
         <>
           <Button onClick={close}>Zrušiť</Button>
@@ -142,7 +142,7 @@ export function PohodaExportModal({ open, onClose, docs, onDone }: { open: boole
                 <tr className="text-left text-xs font-medium text-zinc-500">
                   <th className="px-3 py-2 font-medium">Klient</th>
                   <th className="px-3 py-2 text-right font-medium">Doklady</th>
-                  <th className="px-3 py-2 text-right font-medium">Suma spolu</th>
+                  <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Suma spolu</th>
                   <th className="px-3 py-2 font-medium">Súbor</th>
                 </tr>
               </thead>
@@ -154,8 +154,8 @@ export function PohodaExportModal({ open, onClose, docs, onDone }: { open: boole
                       <span className="num block text-xs font-normal text-zinc-500">IČO {g.client.ico}</span>
                     </td>
                     <td className="num px-3 py-2 text-right">{g.docs.length}</td>
-                    <td className="num px-3 py-2 text-right">{formatMoney(g.total)}</td>
-                    <td className="num px-3 py-2 text-xs text-zinc-600">{g.fileName}</td>
+                    <td className="num whitespace-nowrap px-3 py-2 text-right">{formatMoney(g.total)}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-zinc-600">{g.fileName}</td>
                   </tr>
                 ))}
               </tbody>
@@ -164,7 +164,7 @@ export function PohodaExportModal({ open, onClose, docs, onDone }: { open: boole
         )}
 
         <p className="text-xs text-zinc-500">
-          V Pohode: <span className="font-medium text-zinc-700">Súbor → Datová komunikace → XML import</span>. Doklady sa naimportujú ako prijaté faktúry, pôvodné číslo dodávateľa ostane v poli Doklad.
+          V Pohode: <span className="font-medium text-zinc-700">Súbor → Dátová komunikácia → XML import/export</span>. Doklady sa naimportujú ako prijaté faktúry, pôvodné číslo dodávateľa ostane v poli Doklad.
         </p>
       </div>
     </Modal>
@@ -224,6 +224,8 @@ export default function Documents() {
   }
 
   const rows = tab === 'all' ? base : base.filter((d) => d.status === tab)
+  /** Stav má zmysel len tam, kde nie je jasný zo záložky */
+  const showStatus = tab === 'all' || tab === 'exported'
   const selectedDocs = state.documents.filter((d) => selected.has(d.id))
   const allChecked = rows.length > 0 && rows.every((d) => selected.has(d.id))
   const selectedTotal = selectedDocs.reduce((s, d) => s + (d.data.total || 0), 0)
@@ -241,7 +243,7 @@ export default function Documents() {
     <div>
       <PageHeader
         title="Doklady"
-        description="Doklady od klientov: skontrolujte údaje, schváľte a exportujte do Pohody. Exportované doklady sa označia, aby sa nenaimportovali dvakrát."
+        description="Skontrolujte údaje, schváľte a exportujte do Pohody. Exportované doklady sa označia, aby sa nenaimportovali dvakrát."
         actions={
           tab === 'reviewed' && rows.some((d) => isExportableKind(d.kind)) ? (
             <Button
@@ -318,8 +320,7 @@ export default function Documents() {
                   <th className="px-3 py-2.5 font-medium">Číslo</th>
                   <th className="px-3 py-2.5 font-medium">Dátum</th>
                   <th className="px-3 py-2.5 text-right font-medium">Suma</th>
-                  <th className="px-3 py-2.5 font-medium">Stav</th>
-                  <th className="px-3 py-2.5 pr-4 font-medium">Nahrané</th>
+                  {showStatus && <th className="px-3 py-2.5 pr-4 font-medium">Stav</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -334,18 +335,21 @@ export default function Documents() {
                     </td>
                     <td className="max-w-[220px] px-3 py-2.5">
                       <p className="truncate font-medium text-zinc-900">{d.fileName}</p>
-                      <p className="text-xs text-zinc-500">{DOCUMENT_KIND_LABEL[d.kind]}</p>
+                      <p className="num truncate text-xs text-zinc-500">
+                        {DOCUMENT_KIND_LABEL[d.kind]} · nahrané {formatShortDate(d.uploadedAt)}
+                      </p>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-zinc-700">{clientName(d.clientId)}</td>
                     <td className="max-w-[200px] truncate px-3 py-2.5 text-zinc-700">{d.data.supplierName || <span className="text-zinc-400">–</span>}</td>
-                    <td className="num whitespace-nowrap px-3 py-2.5 text-zinc-700">{d.data.invoiceNumber || <span className="text-zinc-400">–</span>}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-zinc-700">{d.data.invoiceNumber || <span className="text-zinc-400">–</span>}</td>
                     <td className="num whitespace-nowrap px-3 py-2.5 text-zinc-700">{formatDate(d.data.issueDate)}</td>
                     <td className="num whitespace-nowrap px-3 py-2.5 text-right text-zinc-900">{d.data.total ? formatMoney(d.data.total) : <span className="text-zinc-400">–</span>}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5">
-                      <DocumentStatusBadge status={d.status} />
-                      {d.status === 'exported' && <span className="num ml-1.5 text-xs text-zinc-500">{formatDate(d.exportedAt)}</span>}
-                    </td>
-                    <td className="num whitespace-nowrap px-3 py-2.5 pr-4 text-zinc-500">{formatDate(d.uploadedAt)}</td>
+                    {showStatus && (
+                      <td className="whitespace-nowrap px-3 py-2.5 pr-4">
+                        <DocumentStatusBadge status={d.status} />
+                        {d.status === 'exported' && <span className="num ml-1.5 text-xs text-zinc-500">{formatDate(d.exportedAt)}</span>}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

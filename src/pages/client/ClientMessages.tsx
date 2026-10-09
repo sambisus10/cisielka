@@ -60,7 +60,9 @@ export default function ClientMessages() {
                       <span className={cn('font-medium', m.kind === 'reminder' ? 'text-amber-700' : 'text-zinc-500')}>{KIND_LABEL[m.kind]}</span>
                       <span className="num shrink-0 text-zinc-400">{formatShortDate(m.at)}</span>
                     </span>
-                    <span className={cn('mt-0.5 block text-sm', !m.read ? 'font-semibold text-zinc-900' : 'text-zinc-800', !open && 'truncate')}>{m.subject}</span>
+                    <span className={cn('mt-0.5 block text-sm', !m.read ? 'font-semibold text-zinc-900' : 'text-zinc-800', !open && 'truncate')}>
+                      {m.subject.replace(/^(Nová požiadavka|Pripomienka|Nová správa k|Vybavené):\s*/, '')}
+                    </span>
                   </span>
                   <ChevronDown size={16} strokeWidth={1.75} className={cn('mt-4 shrink-0 text-zinc-300 transition-transform', open && 'rotate-180')} />
                 </button>

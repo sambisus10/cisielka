@@ -54,11 +54,11 @@ export default function DocumentDetail() {
 
 function Field({ label, error, children, className }: { label: string; error?: string; children: ReactNode; className?: string }) {
   return (
-    <div className={className}>
-      <label className="label">{label}</label>
+    <label className={cn('block', className)}>
+      <span className="label">{label}</span>
       {children}
-      {error && <p className="mt-1 text-xs text-red-600/80">{error}</p>}
-    </div>
+      {error && <span className="mt-1 block text-xs text-red-600/80">{error}</span>}
+    </label>
   )
 }
 
@@ -87,7 +87,11 @@ function DocumentDetailInner({ doc }: { doc: Document }) {
   const awaiting = state.documents.filter((d) => d.status === 'uploaded' && d.id !== doc.id).sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
   const nextAwaiting = awaiting.find((d) => d.uploadedAt <= doc.uploadedAt) ?? awaiting[0]
 
-  const history = state.events.filter((e) => e.documentId === doc.id).sort((a, b) => b.at.localeCompare(a.at))
+  // nahranie dokladu je v histórii vždy – aj keď k nemu nie je samostatná udalosť (napr. ukážkové dáta)
+  const history = [
+    { id: 'upload', text: doc.uploadedBy === 'client' ? 'Klient nahral doklad' : 'Doklad nahraný účtovníčkou', at: doc.uploadedAt },
+    ...state.events.filter((e) => e.documentId === doc.id && e.type !== 'client_uploaded'),
+  ].sort((a, b) => b.at.localeCompare(a.at))
 
   const errors = {
     supplierName: !data.supplierName.trim() ? 'Doplňte dodávateľa' : undefined,
@@ -218,7 +222,7 @@ function DocumentDetailInner({ doc }: { doc: Document }) {
             )}
             <span className="text-zinc-300">·</span>
             <span className="num">
-              nahral(a) {doc.uploadedBy === 'client' ? 'klient' : 'účtovníčka'} {formatDateTime(doc.uploadedAt)}
+              {doc.uploadedBy === 'client' ? 'nahral klient' : 'nahrala účtovníčka'} {formatDateTime(doc.uploadedAt)}
             </span>
             <span className="text-zinc-300">·</span>
             <span className="num">{formatFileSize(doc.fileSize)}</span>
@@ -226,7 +230,7 @@ function DocumentDetailInner({ doc }: { doc: Document }) {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <DocPreview doc={doc} className="mx-auto max-w-[640px]" />
         </div>
@@ -256,7 +260,7 @@ function DocumentDetailInner({ doc }: { doc: Document }) {
                     </option>
                   ))}
                 </select>
-                {!isExportableKind(draft.kind) && <p className="mt-1 text-xs text-zinc-500">Bankové výpisy a iné doklady sa do Pohody neexportujú ako faktúry.</p>}
+                {!isExportableKind(draft.kind) && <span className="mt-1 block text-xs text-zinc-500">Bankové výpisy a iné doklady sa do Pohody neexportujú ako faktúry.</span>}
               </Field>
               <Field label={draft.kind === 'issued_invoice' ? 'Odberateľ' : 'Dodávateľ'} error={err('supplierName')} className="sm:col-span-2">
                 {text('supplierName', err('supplierName'))}
@@ -264,7 +268,7 @@ function DocumentDetailInner({ doc }: { doc: Document }) {
               <Field label="IČO">{text('supplierIco', undefined, 'num')}</Field>
               <Field label="DIČ">{text('supplierDic', undefined, 'num')}</Field>
               <Field label="Číslo faktúry" error={err('invoiceNumber')}>
-                {text('invoiceNumber', err('invoiceNumber'), 'num')}
+                {text('invoiceNumber', err('invoiceNumber'))}
               </Field>
               <Field label="Variabilný symbol">{text('variableSymbol', undefined, 'num')}</Field>
               <Field label="Dátum vystavenia" error={err('issueDate')}>

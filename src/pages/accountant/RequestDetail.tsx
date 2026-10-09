@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, FileText, Paperclip } from 'lucide-react'
+import { ArrowLeft, Paperclip } from 'lucide-react'
+import DocPreview from '../../components/DocPreview'
 import { useStore, requestDisplayStatus } from '../../store/AppStore'
 import type { AppState, Request } from '../../data/types'
-import { Avatar, Button, Card, CardHeader, cn, DocumentStatusBadge, EmptyState, Modal, REQUEST_TYPE_LABEL, RequestStatusBadge } from '../../components/ui'
+import { Avatar, Button, Card, CardHeader, cn, DocumentStatusBadge, EmptyState, Modal, REQUEST_TYPE_LABEL, RequestStatusBadge, Switch } from '../../components/ui'
 import { useToast } from '../../components/Toast'
 import { addDays, formatDate, formatDateTime, formatFileSize, formatMoney, formatPeriod } from '../../lib/format'
 import { DueCell, Timeline } from '../../components/accountantShared'
@@ -70,7 +71,7 @@ export default function RequestDetail() {
     <div>
       <div className="mb-3">{back}</div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         {/* Ľavý stĺpec */}
         <div className="min-w-0 space-y-6">
           <div>
@@ -131,7 +132,9 @@ export default function RequestDetail() {
                 {docs.map((d) => (
                   <li key={d.id} className="border-b border-zinc-100 last:border-0">
                     <Link to={`/documents/${d.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-50">
-                      <FileText size={16} strokeWidth={1.75} className="shrink-0 text-zinc-400" />
+                      <span className="block w-7 shrink-0">
+                        <DocPreview doc={d} compact />
+                      </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-zinc-900">{d.fileName}</span>
                         <span className="num block text-xs text-zinc-500">
@@ -188,7 +191,7 @@ export default function RequestDetail() {
             <div className="border-t border-zinc-200 p-3">
               <textarea
                 className="input min-h-[72px] resize-y"
-                placeholder={`Napíšte správu pre ${client?.contactName ?? 'klienta'}…`}
+                placeholder="Napíšte správu klientovi…"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
@@ -273,7 +276,16 @@ export default function RequestDetail() {
             <CardHeader title="Pripomienky" />
             <dl className="divide-y divide-zinc-100 text-sm">
               <Row label="Automatické">
-                <span className={r.remindersEnabled ? 'text-zinc-900' : 'text-zinc-400'}>{r.remindersEnabled ? 'zapnuté' : 'vypnuté'}</span>
+                <span className="flex h-5 items-center">
+                  <Switch
+                    checked={r.remindersEnabled}
+                    label="Automatické pripomienky"
+                    onChange={(v) => {
+                      store.setRemindersEnabled(r.id, v)
+                      toast(v ? 'Automatické pripomienky zapnuté' : 'Automatické pripomienky vypnuté')
+                    }}
+                  />
+                </span>
               </Row>
               <Row label="Odoslané">
                 <span className="num text-zinc-900">{remindersTotal}</span>

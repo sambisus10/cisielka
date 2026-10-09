@@ -1,8 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronRight, Plus } from 'lucide-react'
 import { useStore, clientPeriodProgress, isOverdue, lastClientActivity } from '../../store/AppStore'
-import { Card, CardHeader, cn, PageHeader, REQUEST_TYPE_LABEL } from '../../components/ui'
-import { formatDate, formatDateTime, formatPeriod, relativeDays } from '../../lib/format'
+import { Button, Card, CardHeader, cn, PageHeader, REQUEST_TYPE_LABEL } from '../../components/ui'
+import { NewRequestModal } from '../../components/NewRequestModal'
+import { formatDate, formatDateTime, formatPeriod, plural, relativeDays } from '../../lib/format'
 import { ProgressBar, TD, TH } from '../../components/accountantShared'
 
 const WEEKDAYS = ['nedeľa', 'pondelok', 'utorok', 'streda', 'štvrtok', 'piatok', 'sobota']
@@ -11,6 +13,7 @@ const PERIOD = '2026-09'
 export default function Dashboard() {
   const { state } = useStore()
   const navigate = useNavigate()
+  const [modal, setModal] = useState(false)
   const { today } = state
 
   const [y, m, d] = today.slice(0, 10).split('-').map(Number)
@@ -56,6 +59,12 @@ export default function Dashboard() {
           <>
             <span className="capitalize">{weekday}</span> <span className="num">{formatDate(today)}</span> · prebieha uzávierka za {formatPeriod(PERIOD)}, DPH do 25. 10.
           </>
+        }
+        actions={
+          <Button variant="primary" onClick={() => setModal(true)}>
+            <Plus size={15} strokeWidth={1.75} />
+            Nová požiadavka
+          </Button>
         }
       />
 
@@ -108,7 +117,7 @@ export default function Dashboard() {
                     {overdue ? (
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600">
                         <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                        {overdue === 1 ? '1 požiadavka' : `${overdue} požiadavky`}
+                        {plural(overdue, 'požiadavka', 'požiadavky', 'požiadaviek')}
                       </span>
                     ) : (
                       <span className="text-xs text-zinc-400">–</span>
@@ -124,7 +133,7 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader
             title="Čaká na mňa"
@@ -148,7 +157,7 @@ export default function Dashboard() {
                         <span className="block truncate text-sm font-medium text-zinc-900">{r.title}</span>
                         <span className="block truncate text-xs text-zinc-500">
                           {clientName(r.clientId)} · {REQUEST_TYPE_LABEL[r.type]}
-                          {r.documentIds.length > 0 && ` · ${r.documentIds.length} ${r.documentIds.length === 1 ? 'doklad' : r.documentIds.length < 5 ? 'doklady' : 'dokladov'}`}
+                          {r.documentIds.length > 0 && ` · ${plural(r.documentIds.length, 'doklad', 'doklady', 'dokladov')}`}
                         </span>
                       </span>
                       <span className="shrink-0 text-xs text-zinc-500">{relativeDays(at, today)}</span>
@@ -181,6 +190,7 @@ export default function Dashboard() {
           </ul>
         </Card>
       </div>
+      <NewRequestModal open={modal} onClose={() => setModal(false)} />
     </div>
   )
 }

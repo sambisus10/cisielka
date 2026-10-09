@@ -29,9 +29,9 @@ export function DemoBar() {
   }
 
   return (
-    <div className="sticky top-0 z-40 flex h-10 items-center gap-3 border-b border-zinc-800 bg-zinc-900 px-3 text-xs text-zinc-300">
+    <div className="sticky top-0 z-40 flex h-10 items-center gap-2 border-b border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-300 sm:gap-3 sm:px-3">
       <span className="hidden font-medium uppercase tracking-wider text-zinc-500 sm:inline">Demo</span>
-      <div className="flex rounded-md bg-zinc-800 p-0.5">
+      <div className="flex shrink-0 rounded-md bg-zinc-800 p-0.5">
         {(['accountant', 'client'] as const).map((r) => (
           <button
             key={r}
@@ -50,7 +50,7 @@ export function DemoBar() {
             setPortalClient(e.target.value)
             navigate('/portal')
           }}
-          className="h-7 rounded-md border border-zinc-700 bg-zinc-800 px-2 text-xs text-zinc-200 focus:outline-none"
+          className="h-7 min-w-0 max-w-[7.5rem] rounded-md border border-zinc-700 bg-zinc-800 px-2 text-xs text-zinc-200 focus:outline-none sm:max-w-none"
         >
           {state.clients.map((c) => (
             <option key={c.id} value={c.id}>
@@ -60,14 +60,14 @@ export function DemoBar() {
           ))}
         </select>
       )}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
         <span className="hidden text-zinc-400 md:inline">
           Simulovaný dátum: <span className="num text-zinc-100">{weekday} {formatDate(state.today)}</span>
         </span>
         <button
           type="button"
           onClick={onAdvance}
-          className="inline-flex h-7 items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 font-medium text-zinc-100 hover:bg-zinc-800"
+          className="inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md border border-zinc-700 px-2 font-medium text-zinc-100 hover:bg-zinc-800 sm:px-2.5"
           title="Posunie čas o deň a spustí automatické pripomienky"
         >
           <FastForward size={14} strokeWidth={1.75} />
@@ -82,6 +82,7 @@ export function DemoBar() {
           }}
           className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
           title="Obnoviť pôvodné ukážkové dáta"
+          aria-label="Reset"
         >
           <RotateCcw size={14} strokeWidth={1.75} />
           <span className="hidden sm:inline">Reset</span>

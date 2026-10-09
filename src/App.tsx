@@ -1,4 +1,6 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { useStore } from './store/AppStore'
 import { DemoBar } from './components/DemoBar'
 import { AccountantLayout } from './components/AccountantLayout'
 import { ClientLayout } from './components/ClientLayout'
@@ -16,6 +18,14 @@ import ClientUploads from './pages/client/ClientUploads'
 import ClientMessages from './pages/client/ClientMessages'
 
 export default function App() {
+  const { state, setRole } = useStore()
+  const { pathname } = useLocation()
+  // rola v demo lište vždy zodpovedá zobrazenej časti (aj pri priamom odkaze alebo tlačidle Späť)
+  const routeRole = pathname.startsWith('/portal') ? 'client' : 'accountant'
+  useEffect(() => {
+    if (state.role !== routeRole) setRole(routeRole)
+  }, [routeRole, state.role, setRole])
+
   return (
     <>
       <DemoBar />

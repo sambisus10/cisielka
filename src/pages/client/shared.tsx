@@ -1,4 +1,4 @@
-import { FileText, Image as ImageIcon } from 'lucide-react'
+import DocPreview from '../../components/DocPreview'
 import type { Document, Request } from '../../data/types'
 import { cn } from '../../components/ui'
 import { daysUntil, formatShortDate } from '../../lib/format'
@@ -16,17 +16,11 @@ export function dueInfo(r: Request, today: string): { label: string; overdue: bo
   return { label: `do ${formatShortDate(r.dueDate)}`, overdue: false }
 }
 
-/** Náhľad súboru – obrázok alebo ikona dokumentu */
+/** Náhľad súboru – zmenšený papierový náhľad (obrázok, PDF alebo vygenerovaný z údajov dokladu) */
 export function FileThumb({ doc, size = 'md' }: { doc: Document; size?: 'sm' | 'md' }) {
-  const box = size === 'sm' ? 'h-9 w-9' : 'h-12 w-12'
-  if (doc.fileType === 'image' && doc.fileUrl) {
-    return <img src={doc.fileUrl} alt="" className={cn(box, 'shrink-0 rounded-md border border-zinc-200 bg-zinc-100 object-cover')} />
-  }
-  const Icon = doc.fileType === 'pdf' ? FileText : ImageIcon
   return (
-    <span className={cn(box, 'flex shrink-0 flex-col items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-500')}>
-      <Icon size={size === 'sm' ? 16 : 18} strokeWidth={1.75} />
-      {doc.fileType === 'pdf' && size === 'md' && <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-zinc-400">pdf</span>}
+    <span className={cn('block shrink-0', size === 'sm' ? 'w-7' : 'w-10')}>
+      <DocPreview doc={doc} compact />
     </span>
   )
 }

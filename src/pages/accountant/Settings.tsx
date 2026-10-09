@@ -86,7 +86,7 @@ export default function Settings() {
             <Row label="Obsah">Prijaté faktúry a pokladničné doklady po kontrole</Row>
           </dl>
           <p className="border-t border-zinc-100 px-4 py-2.5 text-xs text-zinc-500">
-            Súbor importujete v Pohode cez Súbor → Datakomunikácia → XML import/export.
+            Súbor importujete v Pohode cez Súbor → Dátová komunikácia → XML import/export.
           </p>
         </Card>
       </div>

@@ -10,7 +10,7 @@ import type {
   Settings,
 } from '../data/types'
 import { createSeedState, emptyInvoiceData, STATE_VERSION } from '../data/seed'
-import { addDays, daysBetween, formatDate, uid } from '../lib/format'
+import { addDays, daysBetween, formatDate, plural, uid } from '../lib/format'
 
 const STORAGE_KEY = 'cisielka-demo-state'
 
@@ -57,6 +57,8 @@ interface Actions {
   resolveRequest: (requestId: string) => void
   reopenRequest: (requestId: string, comment?: string) => void
   remindNow: (requestId: string) => void
+  /** Zapne / vypne automatické pripomienky pre konkrétnu požiadavku */
+  setRemindersEnabled: (requestId: string, enabled: boolean) => void
   updateDocumentData: (documentId: string, data: Partial<InvoiceData>, kind?: Document['kind']) => void
   approveDocument: (documentId: string) => void
   unapproveDocument: (documentId: string) => void
@@ -80,6 +82,11 @@ function fileToDataUrl(file: File): Promise<string> {
     r.onerror = reject
     r.readAsDataURL(file)
   })
+}
+
+/** Slovenské ženské priezviská končia na -á: 'Peter Kováč odovzdal' / 'Elena Tóthová odovzdala' */
+function pastVerb(name: string, verb: string) {
+  return /á$/.test(name.trim()) ? `${verb}a` : verb
 }
 
 function guessKind(fileName: string, req?: Request): Document['kind'] {
@@ -184,7 +191,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             ]
           } else {
             next.accountantNotifications = [
-              { id: uid('n'), clientId: r.clientId, requestId, text: `${clientFirstName(s, r.clientId)} napísal(a) správu k „${r.title}“`, at: s.today, read: false },
+              { id: uid('n'), clientId: r.clientId, requestId, text: `${clientFirstName(s, r.clientId)} ${pastVerb(clientFirstName(s, r.clientId), 'napísal')} správu k „${r.title}“`, at: s.today, read: false },
               ...s.accountantNotifications,
             ]
           }
@@ -241,9 +248,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         update((s) => {
           const r = s.requests.find((x) => x.id === requestId)
           if (!r) return s
-          const newDocs = s.documents.filter((d) => d.requestId === requestId && d.status === 'uploaded' && d.uploadedAt === s.today)
+          const attached = new Set(s.comments.filter((c) => c.requestId === requestId).flatMap((c) => c.documentIds ?? []))
+          const newDocs = s.documents.filter((d) => d.requestId === requestId && d.uploadedBy === 'client' && d.status === 'uploaded' && !attached.has(d.id))
           const parts: string[] = []
-          if (newDocs.length) parts.push(newDocs.length === 1 ? '1 doklad' : `${newDocs.length} doklady`)
+          if (newDocs.length) parts.push(plural(newDocs.length, 'doklad', 'doklady', 'dokladov'))
           if (replyText) parts.push('odpoveď')
           const name = clientFirstName(s, r.clientId)
           return {
@@ -256,7 +264,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
                 : s.comments,
             events: [...s.events, event(s, { clientId: r.clientId, requestId, type: 'client_submitted', actor: 'client', text: `Klient odovzdal ${parts.join(' a ') || 'požiadavku'}` })],
             accountantNotifications: [
-              { id: uid('n'), clientId: r.clientId, requestId, text: `${name} odovzdal(a) ${parts.join(' a ') || 'požiadavku'} k „${r.title}“`, at: s.today, read: false },
+              { id: uid('n'), clientId: r.clientId, requestId, text: `${name} ${pastVerb(name, 'odovzdal')} ${parts.join(' a ') || 'požiadavku'} k „${r.title}“`, at: s.today, read: false },
               ...s.accountantNotifications,
             ],
           }
@@ -304,6 +312,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             clientMessages: [
               clientMessage(s, { clientId: r.clientId, requestId, kind: 'reminder', subject: `Pripomienka: ${r.title}`, body: `Dobrý deň,\n\nvaša účtovníčka stále čaká na: ${r.title}. Termín: ${formatDate(r.dueDate)}.` }),
               ...s.clientMessages,
+            ],
+          }
+        }),
+
+      setRemindersEnabled: (requestId, enabled) =>
+        update((s) => {
+          const r = s.requests.find((x) => x.id === requestId)
+          if (!r || r.remindersEnabled === enabled) return s
+          return {
+            ...s,
+            requests: s.requests.map((x) => (x.id === requestId ? { ...x, remindersEnabled: enabled } : x)),
+            events: [
+              ...s.events,
+              event(s, { clientId: r.clientId, requestId, type: 'comment', actor: 'accountant', text: enabled ? 'Automatické pripomienky zapnuté' : 'Automatické pripomienky vypnuté' }),
             ],
           }
         }),

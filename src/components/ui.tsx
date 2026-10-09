@@ -198,6 +198,25 @@ export function Tabs<T extends string>({
   )
 }
 
+/** Malý prepínač (zapnuté / vypnuté) */
+export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative inline-flex h-[18px] w-8 shrink-0 items-center rounded-full border transition-colors',
+        checked ? 'border-accent-700/20 bg-accent-600' : 'border-zinc-300 bg-zinc-200',
+      )}
+    >
+      <span className={cn('h-3.5 w-3.5 rounded-full bg-white shadow-xs transition-transform', checked ? 'translate-x-[15px]' : 'translate-x-[1px]')} />
+    </button>
+  )
+}
+
 /* ---------- Modal ---------- */
 
 export function Modal({
