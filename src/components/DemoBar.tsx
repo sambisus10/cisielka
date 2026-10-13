@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { FastForward, RotateCcw } from 'lucide-react'
+import { FastForward, Monitor, RotateCcw, Smartphone } from 'lucide-react'
 import { useStore } from '../store/AppStore'
+import { usePortalView } from '../store/PortalView'
 import { useToast } from './Toast'
 import { cn } from './ui'
 import { formatDate, plural } from '../lib/format'
@@ -11,6 +12,7 @@ const WEEKDAYS = ['nedeľa', 'pondelok', 'utorok', 'streda', 'štvrtok', 'piatok
 export function DemoBar() {
   const { state, setRole, setPortalClient, advanceDay, resetDemo } = useStore()
   const toast = useToast()
+  const { view, setView } = usePortalView()
   const navigate = useNavigate()
   const [y, m, d] = state.today.slice(0, 10).split('-').map(Number)
   const weekday = WEEKDAYS[new Date(y, m - 1, d).getDay()]
@@ -50,7 +52,7 @@ export function DemoBar() {
             setPortalClient(e.target.value)
             navigate('/portal')
           }}
-          className="h-7 min-w-0 max-w-[7.5rem] rounded-md border border-zinc-700 bg-zinc-800 px-2 text-xs text-zinc-200 focus:outline-none sm:max-w-none"
+          className="h-7 min-w-0 max-w-[7.5rem] rounded-md border border-zinc-700 bg-zinc-800 px-2 text-xs text-zinc-200 focus:outline-none sm:max-w-[15rem]"
         >
           {state.clients.map((c) => (
             <option key={c.id} value={c.id}>
@@ -59,6 +61,26 @@ export function DemoBar() {
             </option>
           ))}
         </select>
+      )}
+      {state.role === 'client' && (
+        <div className="flex shrink-0 rounded-md bg-zinc-800 p-0.5" role="group" aria-label="Zobrazenie portálu">
+          {([
+            { v: 'mobile', label: 'Mobil', icon: Smartphone },
+            { v: 'web', label: 'Web', icon: Monitor },
+          ] as const).map(({ v, label, icon: Icon }) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              title={v === 'mobile' ? 'Zobrazenie na mobile' : 'Zobrazenie na počítači'}
+              aria-pressed={view === v}
+              className={cn('inline-flex items-center gap-1.5 rounded px-2 py-1 font-medium transition-colors', view === v ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-100')}
+            >
+              <Icon size={13} strokeWidth={1.75} />
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </div>
       )}
       <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
         <span className="hidden text-zinc-400 md:inline">

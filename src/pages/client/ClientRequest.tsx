@@ -7,10 +7,12 @@ import { cn, EmptyState, RequestStatusBadge } from '../../components/ui'
 import { useToast } from '../../components/Toast'
 import { formatDate, formatDateTime, formatFileSize, formatShortDate, plural } from '../../lib/format'
 import { bigPrimary, bigSecondary, dueInfo, FileThumb } from './shared'
+import { usePortalView } from '../../store/PortalView'
 
 export default function ClientRequest() {
   const { id = '' } = useParams()
   const { state, uploadFiles, removeDocument, submitRequest, addComment } = useStore()
+  const { view } = usePortalView()
   const toast = useToast()
   const r = state.requests.find((x) => x.id === id && x.clientId === state.portalClientId)
 
@@ -112,7 +114,7 @@ export default function ClientRequest() {
   const editable = r.status === 'waiting_client'
 
   return (
-    <div className={cn(editable && 'pb-20')}>
+    <div className={cn(editable && view === 'mobile' && 'pb-20')}>
       <BackLink />
 
       <div className="px-1">
@@ -166,7 +168,7 @@ export default function ClientRequest() {
                   <span className="mt-2 text-[15px] font-medium text-zinc-900">{uploading ? 'Nahrávam…' : 'Vybrať súbory'}</span>
                   <span className="mt-0.5 text-xs text-zinc-500">Fotky alebo PDF, aj viac naraz</span>
                 </button>
-                <button type="button" onClick={() => cameraInput.current?.click()} className={cn(bigSecondary, 'mt-2')}>
+                <button type="button" onClick={() => cameraInput.current?.click()} className={cn(bigSecondary, 'mt-2', view === 'web' && 'hidden')}>
                   <Camera size={18} strokeWidth={1.75} />
                   Odfotiť doklad
                 </button>
@@ -204,7 +206,7 @@ export default function ClientRequest() {
                   <button
                     type="button"
                     onClick={() => cameraInput.current?.click()}
-                    className="inline-flex h-11 w-12 shrink-0 items-center justify-center rounded-xl border border-zinc-300 bg-white text-zinc-800 transition-colors hover:bg-zinc-50"
+                    className={cn('inline-flex h-11 w-12 shrink-0 items-center justify-center rounded-xl border border-zinc-300 bg-white text-zinc-800 transition-colors hover:bg-zinc-50', view === 'web' && 'hidden')}
                     aria-label="Odfotiť doklad"
                     title="Odfotiť doklad"
                   >
@@ -227,7 +229,16 @@ export default function ClientRequest() {
         toast('Správa odoslaná účtovníčke')
       }} />
 
-      {editable && (
+      {editable && view === 'web' && (
+        <div className="mt-6 flex flex-col items-end gap-1.5 border-t border-zinc-200 pt-5">
+          <button type="button" onClick={onSubmit} disabled={!canSubmit} className={bigPrimary.replace('w-full', 'w-auto px-6')}>
+            Odovzdať účtovníčke
+          </button>
+          {!canSubmit && !uploading && <p className="text-xs text-zinc-400">{isDocument ? 'Najprv nahrajte doklad' : 'Najprv napíšte odpoveď'}</p>}
+        </div>
+      )}
+
+      {editable && view === 'mobile' && (
         <div className="fixed bottom-[58px] left-1/2 z-10 w-full max-w-[420px] -translate-x-1/2 border-t border-zinc-200 bg-white/95 px-4 pb-3 pt-3 sm:absolute">
           <button type="button" onClick={onSubmit} disabled={!canSubmit} className={bigPrimary}>
             Odovzdať účtovníčke

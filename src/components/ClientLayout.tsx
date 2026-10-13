@@ -1,14 +1,16 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { Inbox, FolderCheck, Mail } from 'lucide-react'
 import { useStore } from '../store/AppStore'
-import { cn } from './ui'
+import { usePortalView } from '../store/PortalView'
+import { Avatar, cn } from './ui'
 
 /**
- * Klientsky portál – navrhnutý pre mobil. Na desktope sa zobrazí vycentrovaný v úzkom ráme,
- * aby bolo pri prezentácii jasné, že ide o mobilný zážitok klienta.
+ * Klientsky portál – primárne pre mobil. Na desktope sa v mobilnom režime zobrazí vycentrovaný v úzkom ráme,
+ * vo webovom režime ako bežná stránka s navigáciou hore.
  */
 export function ClientLayout() {
   const { state } = useStore()
+  const { view } = usePortalView()
   const client = state.clients.find((c) => c.id === state.portalClientId)
   const unread = state.clientMessages.filter((m) => m.clientId === state.portalClientId && !m.read).length
   const open = state.requests.filter((r) => r.clientId === state.portalClientId && r.status === 'waiting_client').length
@@ -18,6 +20,55 @@ export function ClientLayout() {
     { to: '/portal/uploads', label: 'Odovzdané', icon: FolderCheck },
     { to: '/portal/messages', label: 'Správy', icon: Mail, count: unread },
   ]
+
+  const countBadge = (n?: number) =>
+    !!n && (
+      <span className="num flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-600 px-1 text-[10px] font-semibold text-white">{n}</span>
+    )
+
+  if (view === 'web') {
+    return (
+      <div className="min-h-[calc(100vh-2.5rem)] bg-zinc-50">
+        <header className="sticky top-10 z-20 border-b border-zinc-200 bg-white">
+          <div className="mx-auto flex h-14 max-w-4xl items-center gap-6 px-4 sm:px-6">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">{state.accountant.office}</p>
+              <p className="truncate text-sm font-semibold text-zinc-900">Portál pre klientov</p>
+            </div>
+            <nav className="flex h-full flex-1 items-stretch gap-1">
+              {tabs.map((t) => (
+                <NavLink
+                  key={t.to}
+                  to={t.to}
+                  end={t.end}
+                  className={({ isActive }) =>
+                    cn(
+                      '-mb-px flex items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors',
+                      isActive ? 'border-accent-600 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-800',
+                    )
+                  }
+                >
+                  <t.icon size={16} strokeWidth={1.75} className="hidden sm:block" />
+                  {t.label}
+                  {countBadge(t.count)}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="hidden items-center gap-2.5 md:flex">
+              <div className="text-right leading-tight">
+                <p className="text-sm font-medium text-zinc-900">{client?.contactName}</p>
+                {client?.legalForm === 'sro' && <p className="text-xs text-zinc-500">{client.name}</p>}
+              </div>
+              {client && <Avatar name={client.contactName} />}
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+          <Outlet />
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-2.5rem)] justify-center bg-zinc-100 sm:py-8">
@@ -41,11 +92,7 @@ export function ClientLayout() {
             >
               <span className="relative">
                 <t.icon size={20} strokeWidth={1.75} />
-                {!!t.count && (
-                  <span className="num absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-600 px-1 text-[10px] font-semibold text-white">
-                    {t.count}
-                  </span>
-                )}
+                {!!t.count && <span className="absolute -right-2.5 -top-1.5">{countBadge(t.count)}</span>}
               </span>
               {t.label}
             </NavLink>

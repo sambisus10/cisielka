@@ -26,6 +26,7 @@ Tmavá lišta úplne hore nie je súčasťou produktu, slúži len na ovládanie
 | Ovládanie | Čo robí |
 |---|---|
 | **Účtovníčka / Klient** | Prepína pohľad medzi účtovníčkou (desktop) a jej klientom (mobilný portál). Pri klientovi sa dá vybrať, za koho sa pozeráme. |
+| **Mobil / Web** | Pri klientovi prepína, či sa portál zobrazí v mobilnom ráme, alebo ako bežná webová stránka na počítači. |
 | **Simulovaný dátum** | Demo beží v simulovanom čase (štart: 9. 10. 2026, uzávierka za september). |
 | **+1 deň** | Posunie čas o deň a spustí automatické pripomienky – takto sa dá naživo ukázať, ako systém sám nahání klientov. |
 | **Reset** | Vráti všetky ukážkové dáta do pôvodného stavu. |
@@ -45,7 +46,7 @@ Tmavá lišta úplne hore nie je súčasťou produktu, slúži len na ovládanie
 - **Vyhľadávanie** – klienti, požiadavky aj doklady (dodávateľ, číslo faktúry, IČO).
 - **Nastavenia** – kedy sa posielajú automatické pripomienky (predvolene: 1. po 3 dňoch, 2. po 7 dňoch, po 10 dňoch upozornenie účtovníčke).
 
-### Pohľad klienta (mobil)
+### Pohľad klienta (mobil aj web)
 
 - Otvára sa cez odkaz z emailu, **bez registrácie a hesla**.
 - Úvodná obrazovka: *„Účtovníčka od vás potrebuje 2 veci“* – jasný zoznam úloh s termínom.
