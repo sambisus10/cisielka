@@ -84,9 +84,6 @@ function DocumentDetailInner({ doc }: { doc: Document }) {
   const prev = idx > 0 ? sameStatus[idx - 1] : undefined
   const next = idx >= 0 && idx < sameStatus.length - 1 ? sameStatus[idx + 1] : undefined
 
-  const awaiting = state.documents.filter((d) => d.status === 'uploaded' && d.id !== doc.id).sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
-  const nextAwaiting = awaiting.find((d) => d.uploadedAt <= doc.uploadedAt) ?? awaiting[0]
-
   // nahranie dokladu je v histórii vždy – aj keď k nemu nie je samostatná udalosť (napr. ukážkové dáta)
   const history = [
     { id: 'upload', text: doc.uploadedBy === 'client' ? 'Klient nahral doklad' : 'Doklad nahraný účtovníčkou', at: doc.uploadedAt },
@@ -132,12 +129,7 @@ function DocumentDetailInner({ doc }: { doc: Document }) {
     }
     updateDocumentData(doc.id, data, draft.kind)
     approveDocument(doc.id)
-    if (nextAwaiting) {
-      toast(`Doklad schválený – ďalší: ${nextAwaiting.fileName}`)
-      navigate(`/documents/${nextAwaiting.id}`)
-    } else {
-      toast('Doklad schválený – všetky doklady sú skontrolované')
-    }
+    toast('Doklad schválený')
   }
 
   const unapprove = () => {
@@ -319,7 +311,7 @@ function DocumentDetailInner({ doc }: { doc: Document }) {
                 </Button>
                 {doc.status === 'uploaded' && (
                   <Button variant="primary" onClick={approve}>
-                    {nextAwaiting ? 'Schváliť a ďalší' : 'Schváliť'}
+                    Schváliť
                   </Button>
                 )}
                 {reviewed && isExportableKind(doc.kind) && (

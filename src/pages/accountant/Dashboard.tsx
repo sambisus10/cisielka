@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { ChevronRight, Plus } from 'lucide-react'
+import { ChevronRight, Plus, X } from 'lucide-react'
 import { useStore, clientPeriodProgress, isOverdue, lastClientActivity } from '../../store/AppStore'
 import { Button, Card, CardHeader, cn, PageHeader, REQUEST_TYPE_LABEL } from '../../components/ui'
 import { NewRequestModal } from '../../components/NewRequestModal'
@@ -9,31 +9,60 @@ import { ProgressBar, TD, TH } from '../../components/accountantShared'
 
 const WEEKDAYS = ['nedeľa', 'pondelok', 'utorok', 'streda', 'štvrtok', 'piatok', 'sobota']
 const PERIOD = '2026-09'
+const FILTER_KEY = 'cisielka-dashboard-client'
+
+/** Filter prehľadu podľa klienta – pamätá sa v prehliadači */
+function useClientFilter() {
+  const [value, setValue] = useState<string>(() => {
+    try {
+      return localStorage.getItem(FILTER_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  })
+  const set = (v: string) => {
+    setValue(v)
+    try {
+      if (v) localStorage.setItem(FILTER_KEY, v)
+      else localStorage.removeItem(FILTER_KEY)
+    } catch {
+      /* ignore */
+    }
+  }
+  return [value, set] as const
+}
 
 export default function Dashboard() {
   const { state } = useStore()
   const navigate = useNavigate()
   const [modal, setModal] = useState(false)
   const { today } = state
+  const [storedFilter, setFilter] = useClientFilter()
+  // ak klient po resete dema neexistuje, filter ignorujeme
+  const filter = state.clients.some((c) => c.id === storedFilter) ? storedFilter : ''
+  const filteredClient = state.clients.find((c) => c.id === filter)
+  const inScope = (clientId: string) => !filter || clientId === filter
+  const withClient = (to: string) => (filter ? `${to}${to.includes('?') ? '&' : '?'}client=${filter}` : to)
 
   const [y, m, d] = today.slice(0, 10).split('-').map(Number)
   const weekday = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]
   const hour = Number(today.slice(11, 13))
   const greeting = hour < 10 ? 'Dobré ráno' : 'Dobrý deň'
 
-  const waitingMe = state.requests.filter((r) => r.status === 'waiting_accountant')
-  const waitingClient = state.requests.filter((r) => r.status === 'waiting_client')
-  const overdue = state.requests.filter((r) => isOverdue(r, today))
-  const toReview = state.documents.filter((d) => d.status === 'uploaded')
+  const requests = state.requests.filter((r) => inScope(r.clientId))
+  const waitingMe = requests.filter((r) => r.status === 'waiting_accountant')
+  const waitingClient = requests.filter((r) => r.status === 'waiting_client')
+  const overdue = requests.filter((r) => isOverdue(r, today))
+  const toReview = state.documents.filter((d) => d.status === 'uploaded' && inScope(d.clientId))
 
   const kpis = [
-    { label: 'Čaká na mňa', value: waitingMe.length, hint: 'klient odovzdal, treba skontrolovať', to: '/requests?status=waiting_accountant' },
-    { label: 'Čaká na klienta', value: waitingClient.length, hint: 'odoslané, bez odpovede', to: '/requests?status=waiting_client' },
-    { label: 'Po termíne', value: overdue.length, hint: 'klient nestihol termín', to: '/requests?status=overdue', alert: overdue.length > 0 },
-    { label: 'Doklady na kontrolu', value: toReview.length, hint: 'nahrané, neskontrolované', to: '/documents' },
+    { label: 'Čaká na mňa', value: waitingMe.length, hint: 'klient odovzdal, treba skontrolovať', to: withClient('/requests?status=waiting_accountant') },
+    { label: 'Čaká na klienta', value: waitingClient.length, hint: 'odoslané, bez odpovede', to: withClient('/requests?status=waiting_client') },
+    { label: 'Po termíne', value: overdue.length, hint: 'klient nestihol termín', to: withClient('/requests?status=overdue'), alert: overdue.length > 0 },
+    { label: 'Doklady na kontrolu', value: toReview.length, hint: 'nahrané, neskontrolované', to: withClient('/documents') },
   ]
 
-  const clientRows = state.clients.map((c) => {
+  const clientRows = state.clients.filter((c) => inScope(c.id)).map((c) => {
     const reqs = state.requests.filter((r) => r.clientId === c.id)
     return {
       client: c,
@@ -49,7 +78,7 @@ export default function Dashboard() {
     state.events.filter((e) => e.requestId === requestId && e.actor === 'client').reduce((a, e) => (e.at > a ? e.at : a), '')
 
   const waitingList = [...waitingMe].sort((a, b) => (submittedAt(b.id) || b.createdAt).localeCompare(submittedAt(a.id) || a.createdAt)).slice(0, 6)
-  const recent = [...state.events].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 8)
+  const recent = state.events.filter((e) => inScope(e.clientId)).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 8)
 
   return (
     <div>
@@ -61,12 +90,42 @@ export default function Dashboard() {
           </>
         }
         actions={
+          <>
+            <select
+              aria-label="Filtrovať podľa klienta"
+              className={cn('input w-auto min-w-[200px]', filter && 'border-accent-500 bg-accent-50/40')}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="">Všetci klienti</option>
+              {state.clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           <Button variant="primary" onClick={() => setModal(true)}>
             <Plus size={15} strokeWidth={1.75} />
             Nová požiadavka
           </Button>
+          </>
         }
       />
+
+      {filteredClient && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm">
+          <span className="text-zinc-500">
+            Zobrazujete len klienta <span className="font-medium text-zinc-900">{filteredClient.name}</span>
+          </span>
+          <Link to={`/clients/${filteredClient.id}`} className="text-xs font-medium text-accent-700 hover:text-accent-800">
+            Detail klienta
+          </Link>
+          <button type="button" onClick={() => setFilter('')} className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-900">
+            <X size={14} strokeWidth={1.75} />
+            Zobraziť všetkých
+          </button>
+        </div>
+      )}
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((k) => (
@@ -139,7 +198,7 @@ export default function Dashboard() {
             title="Čaká na mňa"
             description="Klient odovzdal, je na vás rad"
             actions={
-              <Link to="/requests?status=waiting_accountant" className="text-xs font-medium text-zinc-600 hover:text-zinc-900">
+              <Link to={withClient('/requests?status=waiting_accountant')} className="text-xs font-medium text-zinc-600 hover:text-zinc-900">
                 Zobraziť všetky
               </Link>
             }
@@ -156,7 +215,7 @@ export default function Dashboard() {
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-zinc-900">{r.title}</span>
                         <span className="block truncate text-xs text-zinc-500">
-                          {clientName(r.clientId)} · {REQUEST_TYPE_LABEL[r.type]}
+                          {!filter && `${clientName(r.clientId)} · `}{REQUEST_TYPE_LABEL[r.type]}
                           {r.documentIds.length > 0 && ` · ${plural(r.documentIds.length, 'doklad', 'doklady', 'dokladov')}`}
                         </span>
                       </span>
@@ -179,8 +238,12 @@ export default function Dashboard() {
                   className="flex items-baseline justify-between gap-3 px-4 py-2 hover:bg-zinc-50"
                 >
                   <span className="min-w-0 truncate text-sm text-zinc-700">
-                    <span className="font-medium text-zinc-900">{clientName(e.clientId)}</span>
-                    <span className="text-zinc-400"> · </span>
+                    {!filter && (
+                      <>
+                        <span className="font-medium text-zinc-900">{clientName(e.clientId)}</span>
+                        <span className="text-zinc-400"> · </span>
+                      </>
+                    )}
                     {e.text}
                   </span>
                   <span className="num shrink-0 text-xs text-zinc-500">{relativeDays(e.at, today) === 'dnes' ? e.at.slice(11, 16) : relativeDays(e.at, today)}</span>
@@ -190,7 +253,7 @@ export default function Dashboard() {
           </ul>
         </Card>
       </div>
-      <NewRequestModal open={modal} onClose={() => setModal(false)} />
+      <NewRequestModal open={modal} onClose={() => setModal(false)} defaultClientId={filter || undefined} />
     </div>
   )
 }
